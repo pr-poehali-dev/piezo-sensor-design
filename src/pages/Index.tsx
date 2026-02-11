@@ -50,6 +50,16 @@ const Index = () => {
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const dragStartRef = useRef({ x: 0, y: 0 });
 
+  const openSearch = (type: 'datasheet' | 'publications' | 'suppliers') => {
+    const materialName = encodeURIComponent(selectedMaterial.name);
+    const queries = {
+      datasheet: `https://www.google.com/search?q=${materialName}+piezoelectric+datasheet+pdf`,
+      publications: `https://scholar.google.com/scholar?q=${materialName}+piezoelectric+sensor+properties`,
+      suppliers: `https://www.google.com/search?q=${materialName}+piezoelectric+ceramic+buy+supplier`
+    };
+    window.open(queries[type], '_blank');
+  };
+
   const updateParam = (key: keyof SensorParams, value: number) => {
     setParams(prev => ({ ...prev, [key]: value }));
   };
@@ -560,15 +570,30 @@ const Index = () => {
                     <Icon name="Search" size={20} className="text-accent mt-0.5" />
                     <div className="space-y-3 flex-1">
                       <h3 className="font-semibold text-sm">Поиск в интернет-ресурсах</h3>
-                      <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start gap-2" 
+                        size="sm"
+                        onClick={() => openSearch('datasheet')}
+                      >
                         <Icon name="ExternalLink" size={16} />
                         Datasheet {selectedMaterial.name}
                       </Button>
-                      <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start gap-2" 
+                        size="sm"
+                        onClick={() => openSearch('publications')}
+                      >
                         <Icon name="BookOpen" size={16} />
                         Научные публикации
                       </Button>
-                      <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                      <Button 
+                        variant="outline" 
+                        className="w-full justify-start gap-2" 
+                        size="sm"
+                        onClick={() => openSearch('suppliers')}
+                      >
                         <Icon name="ShoppingCart" size={16} />
                         Поставщики материалов
                       </Button>
