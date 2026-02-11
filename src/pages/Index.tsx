@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import jsPDF from 'jspdf';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -60,6 +61,112 @@ const Index = () => {
     window.open(queries[type], '_blank');
   };
 
+  const exportToPDF = () => {
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    let yPosition = 20;
+
+    pdf.setFontSize(20);
+    pdf.text('Технический отчет', pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 10;
+    pdf.setFontSize(14);
+    pdf.text('Пьезоэлектрический датчик Lineas® 9195F', pageWidth / 2, yPosition, { align: 'center' });
+    yPosition += 15;
+
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('Основные параметры:', 20, yPosition);
+    yPosition += 8;
+    pdf.setFont(undefined, 'normal');
+    pdf.setFontSize(10);
+
+    const params_data = [
+      ['Длина датчика', `${params.length.toFixed(2)} м`],
+      ['Частота', `${params.frequency} Гц`],
+      ['Чувствительность', `${params.sensitivity} пКл/Н`],
+      ['Нелинейность', `${params.nonlinearity}%`],
+      ['Температурный коэффициент', `${params.tempCoefficient}%/°C`],
+      ['Механическая нагрузка', `${params.mechanicalLoad} Н`],
+    ];
+
+    params_data.forEach(([label, value]) => {
+      pdf.text(`${label}: ${value}`, 25, yPosition);
+      yPosition += 6;
+    });
+
+    yPosition += 5;
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('Расчетные характеристики:', 20, yPosition);
+    yPosition += 8;
+    pdf.setFont(undefined, 'normal');
+    pdf.setFontSize(10);
+
+    const calc_data = [
+      ['Емкость', `${calculateCapacitance()} пФ`],
+      ['Резонансная частота', `${calculateResonance()} кГц`],
+      ['Выходное напряжение', `${(params.sensitivity * params.mechanicalLoad / 1000).toFixed(2)} В`],
+      ['Диапазон температур', `-40...+${selectedMaterial.curie}°C`],
+    ];
+
+    calc_data.forEach(([label, value]) => {
+      pdf.text(`${label}: ${value}`, 25, yPosition);
+      yPosition += 6;
+    });
+
+    yPosition += 5;
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('Материал:', 20, yPosition);
+    yPosition += 8;
+    pdf.setFont(undefined, 'normal');
+    pdf.setFontSize(10);
+
+    const material_data = [
+      ['Название', selectedMaterial.name],
+      ['Тип', selectedMaterial.type],
+      ['Пьезокоэффициент d₃₃', `${selectedMaterial.piezoCoefficient} пКл/Н`],
+      ['Плотность', `${selectedMaterial.density} кг/м³`],
+      ['Модуль Юнга', `${selectedMaterial.youngModulus} ГПа`],
+      ['Температура Кюри', `${selectedMaterial.curie}°C`],
+    ];
+
+    material_data.forEach(([label, value]) => {
+      pdf.text(`${label}: ${value}`, 25, yPosition);
+      yPosition += 6;
+    });
+
+    yPosition += 5;
+    pdf.setFontSize(12);
+    pdf.setFont(undefined, 'bold');
+    pdf.text('Технология изготовления:', 20, yPosition);
+    yPosition += 8;
+    pdf.setFont(undefined, 'normal');
+    pdf.setFontSize(10);
+
+    const tech_steps = [
+      `1. Подготовка пьезокерамического материала ${selectedMaterial.name}`,
+      '2. Нанесение электродов методом напыления',
+      '3. Поляризация в электрическом поле (2-4 кВ/мм)',
+      '4. Сборка многослойной структуры',
+      '5. Герметизация полимерной оболочкой',
+    ];
+
+    tech_steps.forEach((step) => {
+      pdf.text(step, 25, yPosition);
+      yPosition += 6;
+    });
+
+    yPosition += 10;
+    pdf.setFontSize(8);
+    pdf.setTextColor(128, 128, 128);
+    const date = new Date().toLocaleDateString('ru-RU');
+    pdf.text(`Документ создан: ${date}`, pageWidth / 2, yPosition, { align: 'center' });
+    pdf.text('Piezo Designer Pro - Система расчета пьезоэлектрических датчиков', pageWidth / 2, yPosition + 5, { align: 'center' });
+
+    pdf.save(`Sensor_${selectedMaterial.name}_${params.length}m_${date}.pdf`);
+  };
+
   const updateParam = (key: keyof SensorParams, value: number) => {
     setParams(prev => ({ ...prev, [key]: value }));
   };
@@ -110,14 +217,20 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded flex items-center justify-center">
-              <Icon name="Activity" size={24} className="text-primary-foreground" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary rounded flex items-center justify-center">
+                <Icon name="Activity" size={24} className="text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-foreground">Piezo Designer Pro</h1>
+                <p className="text-sm text-muted-foreground">Система расчета пьезоэлектрических датчиков Lineas® 9195F</p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Piezo Designer Pro</h1>
-              <p className="text-sm text-muted-foreground">Система расчета пьезоэлектрических датчиков Lineas® 9195F</p>
-            </div>
+            <Button onClick={exportToPDF} className="gap-2">
+              <Icon name="FileDown" size={18} />
+              Экспорт в PDF
+            </Button>
           </div>
         </div>
       </header>
