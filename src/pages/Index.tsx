@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -27,6 +29,14 @@ interface Material {
   curie: number;
 }
 
+interface SavedProject {
+  id: string;
+  name: string;
+  params: SensorParams;
+  materialName: string;
+  createdAt: string;
+}
+
 const materials: Material[] = [
   { name: 'PZT-5H', type: 'Пьезокерамика', piezoCoefficient: 593, density: 7500, youngModulus: 60.6, curie: 193 },
   { name: 'PZT-4', type: 'Пьезокерамика', piezoCoefficient: 289, density: 7600, youngModulus: 81.3, curie: 328 },
@@ -50,6 +60,17 @@ const Index = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
   const dragStartRef = useRef({ x: 0, y: 0 });
+  const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
+  const [projectName, setProjectName] = useState('');
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('sensorProjects');
+    if (saved) {
+      setSavedProjects(JSON.parse(saved));
+    }
+  }, []);
 
   const openSearch = (type: 'datasheet' | 'publications' | 'suppliers') => {
     const materialName = encodeURIComponent(selectedMaterial.name);
@@ -167,6 +188,46 @@ const Index = () => {
     pdf.save(`Sensor_${selectedMaterial.name}_${params.length}m_${date}.pdf`);
   };
 
+  const saveProject = () => {
+    if (!projectName.trim()) {
+      toast.error('Введите название проекта');
+      return;
+    }
+
+    const newProject: SavedProject = {
+      id: Date.now().toString(),
+      name: projectName,
+      params: { ...params },
+      materialName: selectedMaterial.name,
+      createdAt: new Date().toISOString()
+    };
+
+    const updated = [...savedProjects, newProject];
+    setSavedProjects(updated);
+    localStorage.setItem('sensorProjects', JSON.stringify(updated));
+    
+    setProjectName('');
+    setIsSaveDialogOpen(false);
+    toast.success('Проект сохранен!');
+  };
+
+  const loadProject = (project: SavedProject) => {
+    setParams(project.params);
+    const material = materials.find(m => m.name === project.materialName);
+    if (material) {
+      setSelectedMaterial(material);
+    }
+    setIsLoadDialogOpen(false);
+    toast.success(`Проект "${project.name}" загружен`);
+  };
+
+  const deleteProject = (id: string) => {
+    const updated = savedProjects.filter(p => p.id !== id);
+    setSavedProjects(updated);
+    localStorage.setItem('sensorProjects', JSON.stringify(updated));
+    toast.success('Проект удален');
+  };
+
   const updateParam = (key: keyof SensorParams, value: number) => {
     setParams(prev => ({ ...prev, [key]: value }));
   };
@@ -227,10 +288,89 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Система расчета пьезоэлектрических датчиков Lineas® 9195F</p>
               </div>
             </div>
-            <Button onClick={exportToPDF} className="gap-2">
-              <Icon name="FileDown" size={18} />
-              Экспорт в PDF
-            </Button>
+            <div className="flex gap-2">
+              <Dialog open={isLoadDialogOpen} onOpenChange={setIsLoadDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Icon name="FolderOpen" size={18} />
+                    Загрузить
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Сохраненные проекты</DialogTitle>
+                    <DialogDescription>
+                      Выберите проект для загрузки параметров
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {savedProjects.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">Нет сохраненных проектов</p>
+                    ) : (
+                      savedProjects.map(project => (
+                        <div key={project.id} className="flex items-center justify-between p-3 border rounded hover:bg-muted/50">
+                          <div className="flex-1">
+                            <h4 className="font-semibold">{project.name}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {project.materialName} • {project.params.length}м • {new Date(project.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => loadProject(project)}>
+                              <Icon name="Download" size={16} />
+                            </Button>
+                            <Button size="sm" variant="destructive" onClick={() => deleteProject(project.id)}>
+                              <Icon name="Trash2" size={16} />
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <Icon name="Save" size={18} />
+                    Сохранить
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Сохранить проект</DialogTitle>
+                    <DialogDescription>
+                      Введите название для сохранения текущих параметров
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Название проекта</Label>
+                      <Input
+                        placeholder="Например: Датчик для моста"
+                        value={projectName}
+                        onChange={(e) => setProjectName(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && saveProject()}
+                      />
+                    </div>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <p>• Материал: {selectedMaterial.name}</p>
+                      <p>• Длина: {params.length}м</p>
+                      <p>• Частота: {params.frequency}Гц</p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button onClick={saveProject}>Сохранить проект</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Button onClick={exportToPDF} className="gap-2">
+                <Icon name="FileDown" size={18} />
+                Экспорт в PDF
+              </Button>
+            </div>
           </div>
         </div>
       </header>
