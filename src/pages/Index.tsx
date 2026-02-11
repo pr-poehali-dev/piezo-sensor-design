@@ -27,6 +27,12 @@ interface Material {
   density: number;
   youngModulus: number;
   curie: number;
+  measurementRange?: string;
+  sensitivityTolerance?: string;
+  threshold?: string;
+  accuracy?: string;
+  tempRange?: string;
+  ipRating?: string;
 }
 
 interface SavedProject {
@@ -51,6 +57,20 @@ interface TestSignal {
 }
 
 const materials: Material[] = [
+  { 
+    name: 'Lineas 9195F', 
+    type: 'Промышленный кристалл', 
+    piezoCoefficient: 1.76, 
+    density: 7800, 
+    youngModulus: 65, 
+    curie: 60,
+    measurementRange: '0-150 кН',
+    sensitivityTolerance: '±5%',
+    threshold: '≥0.5 Н',
+    accuracy: '±2.5%',
+    tempRange: '-40...+60°C',
+    ipRating: 'IP68'
+  },
   { name: 'PZT-5H', type: 'Пьезокерамика', piezoCoefficient: 593, density: 7500, youngModulus: 60.6, curie: 193 },
   { name: 'PZT-4', type: 'Пьезокерамика', piezoCoefficient: 289, density: 7600, youngModulus: 81.3, curie: 328 },
   { name: 'PMN-PT', type: 'Монокристалл', piezoCoefficient: 2820, density: 8100, youngModulus: 60, curie: 130 },
@@ -222,6 +242,32 @@ const Index = () => {
       pdf.text(`${label}: ${value}`, 25, yPosition);
       yPosition += 6;
     });
+
+    if (selectedMaterial.measurementRange) {
+      yPosition += 5;
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('\u0414\u043e\u043f\u043e\u043b\u043d\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0435 \u0445\u0430\u0440\u0430\u043a\u0442\u0435\u0440\u0438\u0441\u0442\u0438\u043a\u0438:', 20, yPosition);
+      yPosition += 8;
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(10);
+
+      const extended_data = [
+        ['\u0414\u0438\u0430\u043f\u0430\u0437\u043e\u043d \u0438\u0437\u043c\u0435\u0440\u0435\u043d\u0438\u0439', selectedMaterial.measurementRange],
+        ['\u0414\u043e\u043f\u0443\u0441\u043a \u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u0438', selectedMaterial.sensitivityTolerance],
+        ['\u041f\u043e\u0440\u043e\u0433 \u0447\u0443\u0432\u0441\u0442\u0432\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u0438', selectedMaterial.threshold],
+        ['\u0422\u043e\u0447\u043d\u043e\u0441\u0442\u044c', selectedMaterial.accuracy],
+        ['\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0434\u0438\u0430\u043f\u0430\u0437\u043e\u043d', selectedMaterial.tempRange],
+        ['\u041f\u044b\u043b\u0435\u0432\u043b\u0430\u0433\u043e\u0437\u0430\u0449\u0438\u0449\u0435\u043d\u043d\u043e\u0441\u0442\u044c', selectedMaterial.ipRating],
+      ];
+
+      extended_data.forEach(([label, value]) => {
+        if (value) {
+          pdf.text(`${label}: ${value}`, 25, yPosition);
+          yPosition += 6;
+        }
+      });
+    }
 
     yPosition += 5;
     pdf.setFontSize(12);
@@ -1091,15 +1137,28 @@ const Index = () => {
                           : 'border-border hover:border-primary/50'
                       }`}
                     >
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between mb-2">
                         <div>
-                          <h3 className="font-semibold">{material.name}</h3>
+                          <h3 className="font-semibold flex items-center gap-2">
+                            {material.name}
+                            {material.ipRating && (
+                              <Badge variant="secondary" className="text-xs font-mono">
+                                {material.ipRating}
+                              </Badge>
+                            )}
+                          </h3>
                           <p className="text-sm text-muted-foreground">{material.type}</p>
                         </div>
                         {selectedMaterial.name === material.name && (
                           <Icon name="CheckCircle2" size={20} className="text-primary" />
                         )}
                       </div>
+                      {material.measurementRange && (
+                        <div className="text-xs text-muted-foreground mt-2 pt-2 border-t space-y-1">
+                          <p>📊 {material.measurementRange}</p>
+                          <p>🎯 Точность: {material.accuracy}</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1140,6 +1199,51 @@ const Index = () => {
                       <span className="text-sm text-muted-foreground">Температура Кюри</span>
                       <span className="font-mono font-semibold">{selectedMaterial.curie}°C</span>
                     </div>
+
+                    {selectedMaterial.measurementRange && (
+                      <>
+                        <div className="pt-4 border-t">
+                          <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                            <Icon name="Gauge" size={16} className="text-primary" />
+                            Технические характеристики
+                          </h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center p-2 bg-primary/5 rounded">
+                              <span className="text-xs text-muted-foreground">Диапазон измерений</span>
+                              <span className="font-mono text-xs font-semibold">{selectedMaterial.measurementRange}</span>
+                            </div>
+                            
+                            <div className="flex justify-between items-center p-2 bg-primary/5 rounded">
+                              <span className="text-xs text-muted-foreground">Допуск чувствительности</span>
+                              <span className="font-mono text-xs font-semibold">{selectedMaterial.sensitivityTolerance}</span>
+                            </div>
+
+                            <div className="flex justify-between items-center p-2 bg-primary/5 rounded">
+                              <span className="text-xs text-muted-foreground">Порог чувствительности</span>
+                              <span className="font-mono text-xs font-semibold">{selectedMaterial.threshold}</span>
+                            </div>
+
+                            <div className="flex justify-between items-center p-2 bg-primary/5 rounded">
+                              <span className="text-xs text-muted-foreground">Точность</span>
+                              <span className="font-mono text-xs font-semibold">{selectedMaterial.accuracy}</span>
+                            </div>
+
+                            <div className="flex justify-between items-center p-2 bg-primary/5 rounded">
+                              <span className="text-xs text-muted-foreground">Рабочий диапазон</span>
+                              <span className="font-mono text-xs font-semibold">{selectedMaterial.tempRange}</span>
+                            </div>
+
+                            <div className="flex justify-between items-center p-2 bg-accent/10 rounded border border-accent/20">
+                              <span className="text-xs text-muted-foreground">Защита</span>
+                              <span className="font-mono text-xs font-semibold text-accent flex items-center gap-1">
+                                <Icon name="Shield" size={12} />
+                                {selectedMaterial.ipRating}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </Card>
 
