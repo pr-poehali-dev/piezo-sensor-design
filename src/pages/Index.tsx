@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -45,6 +45,10 @@ const Index = () => {
   });
 
   const [selectedMaterial, setSelectedMaterial] = useState<Material>(materials[0]);
+  const [rotation, setRotation] = useState({ x: 20, y: 30 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
+  const dragStartRef = useRef({ x: 0, y: 0 });
 
   const updateParam = (key: keyof SensorParams, value: number) => {
     setParams(prev => ({ ...prev, [key]: value }));
@@ -61,6 +65,36 @@ const Index = () => {
     const speed = Math.sqrt(selectedMaterial.youngModulus * 1e9 / selectedMaterial.density);
     return ((speed / (2 * params.length)) / 1000).toFixed(2);
   };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (viewMode === '3d') {
+      setIsDragging(true);
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && viewMode === '3d') {
+      const deltaX = e.clientX - dragStartRef.current.x;
+      const deltaY = e.clientY - dragStartRef.current.y;
+      setRotation(prev => ({
+        x: Math.max(-90, Math.min(90, prev.x + deltaY * 0.3)),
+        y: prev.y + deltaX * 0.3
+      }));
+      dragStartRef.current = { x: e.clientX, y: e.clientY };
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => document.removeEventListener('mouseup', handleMouseUp);
+    }
+  }, [isDragging]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -241,13 +275,36 @@ const Index = () => {
 
           <TabsContent value="visualization" className="space-y-6">
             <Card className="p-6">
-              <div className="flex items-center gap-2 border-b pb-3 mb-6">
-                <Icon name="Ruler" size={20} className="text-primary" />
-                <h2 className="text-lg font-semibold">2D Схема датчика</h2>
+              <div className="flex items-center justify-between border-b pb-3 mb-6">
+                <div className="flex items-center gap-2">
+                  <Icon name="Ruler" size={20} className="text-primary" />
+                  <h2 className="text-lg font-semibold">Визуализация датчика</h2>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={viewMode === '2d' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('2d')}
+                    className="gap-2"
+                  >
+                    <Icon name="Minus" size={16} />
+                    2D
+                  </Button>
+                  <Button
+                    variant={viewMode === '3d' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('3d')}
+                    className="gap-2"
+                  >
+                    <Icon name="Box" size={16} />
+                    3D
+                  </Button>
+                </div>
               </div>
 
-              <div className="bg-muted/30 rounded-lg p-8 border-2 border-dashed border-border">
-                <div className="space-y-8">
+              {viewMode === '2d' ? (
+                <div className="bg-muted/30 rounded-lg p-8 border-2 border-dashed border-border">
+                  <div className="space-y-8">
                   <div className="flex justify-between items-center text-xs font-mono text-muted-foreground">
                     <span>0 м</span>
                     <span className="text-primary font-semibold">{params.length.toFixed(2)} м</span>
@@ -288,9 +345,128 @@ const Index = () => {
                       <p className="text-xs font-semibold">Защита</p>
                       <p className="font-mono text-xs text-muted-foreground">Полимерная оболочка</p>
                     </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div
+                  className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg p-8 border-2 border-border relative overflow-hidden cursor-move select-none"
+                  style={{ perspective: '1000px', minHeight: '500px' }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                >
+                  <div className="absolute top-4 right-4 text-xs text-muted-foreground font-mono bg-card/80 px-3 py-2 rounded">
+                    Перетащите для вращения
+                  </div>
+
+                  <div
+                    className="relative w-full h-[450px] flex items-center justify-center"
+                    style={{
+                      transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
+                      transformStyle: 'preserve-3d',
+                      transition: isDragging ? 'none' : 'transform 0.3s ease-out'
+                    }}
+                  >
+                    <div className="relative" style={{ transformStyle: 'preserve-3d' }}>
+                      <div
+                        className="absolute bg-gradient-to-r from-secondary via-primary/40 to-secondary rounded-lg shadow-2xl"
+                        style={{
+                          width: `${params.length * 200}px`,
+                          height: '60px',
+                          transform: 'translateZ(20px)',
+                          border: '3px solid hsl(var(--secondary))',
+                        }}
+                      >
+                        <div className="absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 bg-primary rounded-full border-4 border-card shadow-lg"></div>
+                        <div className="absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 bg-primary rounded-full border-4 border-card shadow-lg"></div>
+                      </div>
+
+                      <div
+                        className="absolute bg-gradient-to-r from-secondary/80 via-primary/30 to-secondary/80 rounded-lg"
+                        style={{
+                          width: `${params.length * 200}px`,
+                          height: '60px',
+                          transform: 'translateZ(-20px)',
+                          border: '3px solid hsl(var(--secondary))',
+                        }}
+                      />
+
+                      <div
+                        className="absolute bg-secondary/60"
+                        style={{
+                          width: `${params.length * 200}px`,
+                          height: '40px',
+                          top: '10px',
+                          transform: 'rotateX(90deg) translateZ(20px)',
+                        }}
+                      />
+
+                      <div
+                        className="absolute bg-secondary/60"
+                        style={{
+                          width: `${params.length * 200}px`,
+                          height: '40px',
+                          top: '10px',
+                          transform: 'rotateX(90deg) translateZ(-20px)',
+                        }}
+                      />
+
+                      <div
+                        className="absolute bg-secondary/70"
+                        style={{
+                          width: '40px',
+                          height: '60px',
+                          transform: 'rotateY(90deg) translateZ(20px)',
+                        }}
+                      />
+
+                      <div
+                        className="absolute bg-secondary/70"
+                        style={{
+                          width: '40px',
+                          height: '60px',
+                          right: 0,
+                          transform: `rotateY(90deg) translateZ(${params.length * 200 - 20}px)`,
+                        }}
+                      />
+
+                      <div
+                        className="absolute left-1/2 -translate-x-1/2 -top-16"
+                        style={{ transform: 'translateZ(40px) translateX(-50%)' }}
+                      >
+                        <Badge variant="secondary" className="font-mono text-xs shadow-lg">
+                          {selectedMaterial.name}
+                        </Badge>
+                      </div>
+
+                      <div
+                        className="absolute left-0 -top-8 text-xs font-mono text-primary font-semibold"
+                        style={{ transform: 'translateZ(40px)' }}
+                      >
+                        {params.length.toFixed(2)} м
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4 pt-8 relative z-10">
+                    <div className="text-center space-y-1 bg-card/80 p-3 rounded">
+                      <Icon name="Layers" size={20} className="mx-auto text-primary" />
+                      <p className="text-xs font-semibold">Слои</p>
+                      <p className="font-mono text-xs text-muted-foreground">Многослойная конструкция</p>
+                    </div>
+                    <div className="text-center space-y-1 bg-card/80 p-3 rounded">
+                      <Icon name="Zap" size={20} className="mx-auto text-primary" />
+                      <p className="text-xs font-semibold">Электроды</p>
+                      <p className="font-mono text-xs text-muted-foreground">Медь/Серебро</p>
+                    </div>
+                    <div className="text-center space-y-1 bg-card/80 p-3 rounded">
+                      <Icon name="Shield" size={20} className="mx-auto text-primary" />
+                      <p className="text-xs font-semibold">Защита</p>
+                      <p className="font-mono text-xs text-muted-foreground">Полимерная оболочка</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-6 p-4 bg-muted/50 rounded space-y-2">
                 <h3 className="font-semibold text-sm flex items-center gap-2">
