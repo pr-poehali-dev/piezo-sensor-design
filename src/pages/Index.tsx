@@ -290,6 +290,47 @@ const Index = () => {
       yPosition += 6;
     });
 
+    if (selectedMaterial.measurementRange) {
+      yPosition += 5;
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('\u041f\u0440\u0438\u043c\u0435\u0440\u044b \u043f\u0440\u0438\u043c\u0435\u043d\u0435\u043d\u0438\u044f:', 20, yPosition);
+      yPosition += 8;
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(10);
+
+      const applications = [
+        '\u2022 \u041c\u043e\u043d\u0438\u0442\u043e\u0440\u0438\u043d\u0433 \u043c\u043e\u0441\u0442\u043e\u0432\u044b\u0445 \u043a\u043e\u043d\u0441\u0442\u0440\u0443\u043a\u0446\u0438\u0439',
+        '\u2022 \u041f\u0440\u043e\u043c\u044b\u0448\u043b\u0435\u043d\u043d\u043e\u0435 \u043e\u0431\u043e\u0440\u0443\u0434\u043e\u0432\u0430\u043d\u0438\u0435 (\u043f\u0440\u0435\u0441\u0441\u044b, \u0444\u043e\u0440\u043c\u044b)',
+        '\u2022 \u0418\u0441\u043f\u044b\u0442\u0430\u0442\u0435\u043b\u044c\u043d\u044b\u0435 \u0441\u0442\u0435\u043d\u0434\u044b',
+        '\u2022 \u0413\u0435\u043e\u0442\u0435\u0445\u043d\u0438\u0447\u0435\u0441\u043a\u0438\u0439 \u043c\u043e\u043d\u0438\u0442\u043e\u0440\u0438\u043d\u0433',
+      ];
+
+      applications.forEach((app) => {
+        pdf.text(app, 25, yPosition);
+        yPosition += 5;
+      });
+
+      yPosition += 3;
+      pdf.setFontSize(12);
+      pdf.setFont(undefined, 'bold');
+      pdf.text('\u0421\u0435\u0440\u0442\u0438\u0444\u0438\u043a\u0430\u0446\u0438\u044f:', 20, yPosition);
+      yPosition += 8;
+      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(10);
+
+      const certs = [
+        '\u2713 \u0413\u041e\u0421\u0422 \u0420 8.802-2012',
+        '\u2713 IEC 60068-2-6',
+        '\u2713 ISO 9001:2015',
+      ];
+
+      certs.forEach((cert) => {
+        pdf.text(cert, 25, yPosition);
+        yPosition += 5;
+      });
+    }
+
     yPosition += 10;
     pdf.setFontSize(8);
     pdf.setTextColor(128, 128, 128);
@@ -500,7 +541,7 @@ const Index = () => {
 
       <main className="container mx-auto px-6 py-8">
         <Tabs defaultValue="calculator" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 max-w-3xl">
+          <TabsList className="grid w-full grid-cols-5 max-w-4xl">
             <TabsTrigger value="calculator" className="flex items-center gap-2">
               <Icon name="Calculator" size={16} />
               Калькулятор
@@ -512,6 +553,10 @@ const Index = () => {
             <TabsTrigger value="testing" className="flex items-center gap-2">
               <Icon name="Waves" size={16} />
               Тестирование
+            </TabsTrigger>
+            <TabsTrigger value="calibration" className="flex items-center gap-2">
+              <Icon name="LineChart" size={16} />
+              Калибровка
             </TabsTrigger>
             <TabsTrigger value="materials" className="flex items-center gap-2">
               <Icon name="Package" size={16} />
@@ -1111,6 +1156,240 @@ const Index = () => {
                       <p className="text-muted-foreground">
                         <strong>Материал:</strong> {selectedMaterial.name} (d₃₃ = {selectedMaterial.piezoCoefficient} пКл/Н)
                       </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="calibration" className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                <Card className="p-6">
+                  <div className="flex items-center gap-2 border-b pb-3 mb-6">
+                    <Icon name="LineChart" size={20} className="text-primary" />
+                    <h2 className="text-lg font-semibold">Калибровочные кривые</h2>
+                  </div>
+
+                  {selectedMaterial.measurementRange ? (
+                    <div className="space-y-6">
+                      <div className="relative h-64 bg-muted/30 rounded border-2 border-dashed border-border p-4">
+                        <div className="absolute bottom-4 left-4 right-4 top-4">
+                          <div className="relative h-full">
+                            <div className="absolute left-0 top-0 bottom-0 w-px bg-border"></div>
+                            <div className="absolute left-0 bottom-0 right-0 h-px bg-border"></div>
+
+                            <svg className="absolute inset-0 w-full h-full" viewBox="0 0 300 200" preserveAspectRatio="none">
+                              <polyline
+                                points="0,200 50,180 100,140 150,90 200,50 250,20 300,10"
+                                fill="none"
+                                stroke="hsl(var(--primary))"
+                                strokeWidth="2"
+                                className="drop-shadow-lg"
+                              />
+                              <polyline
+                                points="0,200 50,178 100,138 150,88 200,48 250,18 300,8"
+                                fill="none"
+                                stroke="hsl(var(--accent))"
+                                strokeWidth="1"
+                                strokeDasharray="4,4"
+                                opacity="0.5"
+                              />
+                            </svg>
+
+                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 -mb-8">
+                              <p className="text-xs text-muted-foreground font-mono">Нагрузка (кН)</p>
+                            </div>
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 -ml-10 -rotate-90">
+                              <p className="text-xs text-muted-foreground font-mono">Выход (В)</p>
+                            </div>
+
+                            <div className="absolute top-2 right-2 bg-card/90 p-2 rounded border text-xs space-y-1">
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-0.5 bg-primary"></div>
+                                <span>Линейная</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-4 h-0.5 bg-accent border-dashed border-t"></div>
+                                <span>С учетом нелинейности</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h3 className="font-semibold text-sm flex items-center gap-2">
+                          <Icon name="Target" size={16} />
+                          Точки калибровки
+                        </h3>
+                        <div className="space-y-2">
+                          {[0, 30, 60, 90, 120, 150].map((load) => (
+                            <div key={load} className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm">
+                              <span className="font-mono">{load} кН</span>
+                              <span className="font-mono text-primary font-semibold">
+                                {(load * Math.abs(selectedMaterial.piezoCoefficient) / 10).toFixed(2)} В
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Icon name="Info" size={48} className="mx-auto mb-4 opacity-30" />
+                      <p>Калибровочные данные доступны только для Lineas 9195F</p>
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="p-6 bg-amber-500/5 border-amber-500/20">
+                  <div className="flex items-center gap-2 border-b border-amber-500/20 pb-3 mb-4">
+                    <Icon name="Award" size={20} className="text-amber-600" />
+                    <h2 className="text-lg font-semibold">Сертификаты и стандарты</h2>
+                  </div>
+
+                  {selectedMaterial.ipRating ? (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3 p-3 bg-card rounded">
+                        <Icon name="CheckCircle" size={20} className="text-green-600 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-sm">ГОСТ Р 8.802-2012</p>
+                          <p className="text-xs text-muted-foreground">Пьезоэлектрические датчики силы. Методика поверки</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 bg-card rounded">
+                        <Icon name="CheckCircle" size={20} className="text-green-600 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-sm">IEC 60068-2-6</p>
+                          <p className="text-xs text-muted-foreground">Испытания на вибрацию (синусоидальную)</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 bg-card rounded">
+                        <Icon name="CheckCircle" size={20} className="text-green-600 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-sm">ISO 9001:2015</p>
+                          <p className="text-xs text-muted-foreground">Система менеджмента качества</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-3 p-3 bg-card rounded">
+                        <Icon name="Shield" size={20} className="text-blue-600 mt-0.5" />
+                        <div>
+                          <p className="font-semibold text-sm">Класс защиты {selectedMaterial.ipRating}</p>
+                          <p className="text-xs text-muted-foreground">Полная защита от пыли и длительного погружения</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      Информация о сертификации доступна для промышленных датчиков
+                    </p>
+                  )}
+                </Card>
+              </div>
+
+              <div className="space-y-6">
+                <Card className="p-6">
+                  <div className="flex items-center gap-2 border-b pb-3 mb-6">
+                    <Icon name="Briefcase" size={20} className="text-primary" />
+                    <h2 className="text-lg font-semibold">Примеры применения</h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-lg border border-blue-500/20">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Icon name="Building2" size={20} className="text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-sm mb-1">Мостовые конструкции</h3>
+                          <p className="text-xs text-muted-foreground">Мониторинг деформаций и нагрузок на опорные элементы мостов</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Badge variant="secondary" className="text-xs">Динамика</Badge>
+                        <Badge variant="secondary" className="text-xs">Долговременный</Badge>
+                        <Badge variant="secondary" className="text-xs">Высокая точность</Badge>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-gradient-to-br from-green-500/10 to-green-600/5 rounded-lg border border-green-500/20">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Icon name="Factory" size={20} className="text-green-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-sm mb-1">Промышленное оборудование</h3>
+                          <p className="text-xs text-muted-foreground">Контроль усилий в прессах и формовочных машинах</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Badge variant="secondary" className="text-xs">Автоматизация</Badge>
+                        <Badge variant="secondary" className="text-xs">Циклические нагрузки</Badge>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-gradient-to-br from-purple-500/10 to-purple-600/5 rounded-lg border border-purple-500/20">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Icon name="TestTube" size={20} className="text-purple-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-sm mb-1">Испытательное оборудование</h3>
+                          <p className="text-xs text-muted-foreground">Стенды для прочностных испытаний материалов и конструкций</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Badge variant="secondary" className="text-xs">Лаборатория</Badge>
+                        <Badge variant="secondary" className="text-xs">Точные измерения</Badge>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-gradient-to-br from-orange-500/10 to-orange-600/5 rounded-lg border border-orange-500/20">
+                      <div className="flex items-start gap-3 mb-3">
+                        <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                          <Icon name="Mountain" size={20} className="text-orange-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-sm mb-1">Геотехнический мониторинг</h3>
+                          <p className="text-xs text-muted-foreground">Контроль грунтовых анкеров и опор в сложных условиях</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <Badge variant="secondary" className="text-xs">Внешняя среда</Badge>
+                        <Badge variant="secondary" className="text-xs">IP68</Badge>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6 bg-primary/5 border-primary/20">
+                  <div className="flex items-start gap-3">
+                    <Icon name="Download" size={20} className="text-primary mt-0.5" />
+                    <div className="space-y-3 flex-1">
+                      <h3 className="font-semibold text-sm">Документация и материалы</h3>
+                      <div className="space-y-2">
+                        <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                          <Icon name="FileText" size={16} />
+                          Техническое руководство (PDF)
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                          <Icon name="FileSpreadsheet" size={16} />
+                          Калибровочная таблица (XLSX)
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                          <Icon name="Award" size={16} />
+                          Сертификат соответствия
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start gap-2" size="sm">
+                          <Icon name="Video" size={16} />
+                          Инструкция по установке (Видео)
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </Card>
