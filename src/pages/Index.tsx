@@ -37,6 +37,19 @@ interface SavedProject {
   createdAt: string;
 }
 
+interface SensorConstruction {
+  housingThickness: number;
+  piezoLayers: number;
+  contactPlateThickness: number;
+  insulatorThickness: number;
+}
+
+interface TestSignal {
+  amplitude: number;
+  frequency: number;
+  waveform: 'sine' | 'square' | 'triangle';
+}
+
 const materials: Material[] = [
   { name: 'PZT-5H', type: 'Пьезокерамика', piezoCoefficient: 593, density: 7500, youngModulus: 60.6, curie: 193 },
   { name: 'PZT-4', type: 'Пьезокерамика', piezoCoefficient: 289, density: 7600, youngModulus: 81.3, curie: 328 },
@@ -64,6 +77,20 @@ const Index = () => {
   const [projectName, setProjectName] = useState('');
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [isLoadDialogOpen, setIsLoadDialogOpen] = useState(false);
+  const [construction, setConstruction] = useState<SensorConstruction>({
+    housingThickness: 2,
+    piezoLayers: 3,
+    contactPlateThickness: 0.5,
+    insulatorThickness: 0.2
+  });
+  const [testSignal, setTestSignal] = useState<TestSignal>({
+    amplitude: 50,
+    frequency: 1000,
+    waveform: 'sine'
+  });
+  const [isTestRunning, setIsTestRunning] = useState(false);
+  const [testOutput, setTestOutput] = useState<number>(0);
+  const animationRef = useRef<number | null>(null);
 
   useEffect(() => {
     const saved = localStorage.getItem('sensorProjects');
@@ -71,6 +98,45 @@ const Index = () => {
       setSavedProjects(JSON.parse(saved));
     }
   }, []);
+
+  useEffect(() => {
+    if (isTestRunning) {
+      const startTime = Date.now();
+      const animate = () => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        let signal = 0;
+        
+        switch (testSignal.waveform) {
+          case 'sine':
+            signal = Math.sin(2 * Math.PI * testSignal.frequency * elapsed / 1000);
+            break;
+          case 'square':
+            signal = Math.sin(2 * Math.PI * testSignal.frequency * elapsed / 1000) > 0 ? 1 : -1;
+            break;
+          case 'triangle': {
+            const t = (testSignal.frequency * elapsed / 1000) % 1;
+            signal = t < 0.5 ? 4 * t - 1 : 3 - 4 * t;
+            break;
+          }
+        }
+        
+        const output = signal * testSignal.amplitude * (params.sensitivity / 100) * (construction.piezoLayers / 3);
+        setTestOutput(output);
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      animate();
+    } else {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      setTestOutput(0);
+    }
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isTestRunning, testSignal, params.sensitivity, construction.piezoLayers]);
 
   const openSearch = (type: 'datasheet' | 'publications' | 'suppliers') => {
     const materialName = encodeURIComponent(selectedMaterial.name);
@@ -228,6 +294,17 @@ const Index = () => {
     toast.success('Проект удален');
   };
 
+  const updateConstruction = (key: keyof SensorConstruction, value: number) => {
+    setConstruction(prev => ({ ...prev, [key]: value }));
+  };
+
+  const getTotalThickness = () => {
+    return construction.housingThickness * 2 + 
+           construction.piezoLayers * 2 + 
+           construction.contactPlateThickness * (construction.piezoLayers + 1) +
+           construction.insulatorThickness * construction.piezoLayers * 2;
+  };
+
   const updateParam = (key: keyof SensorParams, value: number) => {
     setParams(prev => ({ ...prev, [key]: value }));
   };
@@ -377,7 +454,7 @@ const Index = () => {
 
       <main className="container mx-auto px-6 py-8">
         <Tabs defaultValue="calculator" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-4 max-w-3xl">
             <TabsTrigger value="calculator" className="flex items-center gap-2">
               <Icon name="Calculator" size={16} />
               Калькулятор
@@ -385,6 +462,10 @@ const Index = () => {
             <TabsTrigger value="visualization" className="flex items-center gap-2">
               <Icon name="Ruler" size={16} />
               Визуализация
+            </TabsTrigger>
+            <TabsTrigger value="testing" className="flex items-center gap-2">
+              <Icon name="Waves" size={16} />
+              Тестирование
             </TabsTrigger>
             <TabsTrigger value="materials" className="flex items-center gap-2">
               <Icon name="Package" size={16} />
@@ -592,21 +673,26 @@ const Index = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 pt-4">
-                    <div className="text-center space-y-1">
-                      <Icon name="Layers" size={20} className="mx-auto text-primary" />
-                      <p className="text-xs font-semibold">Слои</p>
-                      <p className="font-mono text-xs text-muted-foreground">Многослойная конструкция</p>
+                  <div className="grid grid-cols-4 gap-3 pt-4">
+                    <div className="text-center space-y-1 p-3 bg-secondary/20 rounded border border-secondary/30">
+                      <Icon name="Box" size={18} className="mx-auto text-secondary" />
+                      <p className="text-xs font-semibold">Корпус</p>
+                      <p className="font-mono text-xs text-muted-foreground">{construction.housingThickness}мм</p>
                     </div>
-                    <div className="text-center space-y-1">
-                      <Icon name="Zap" size={20} className="mx-auto text-primary" />
-                      <p className="text-xs font-semibold">Электроды</p>
-                      <p className="font-mono text-xs text-muted-foreground">Медь/Серебро</p>
+                    <div className="text-center space-y-1 p-3 bg-primary/20 rounded border border-primary/30">
+                      <Icon name="Hexagon" size={18} className="mx-auto text-primary" />
+                      <p className="text-xs font-semibold">Пьезоэлементы</p>
+                      <p className="font-mono text-xs text-muted-foreground">{construction.piezoLayers} шт</p>
                     </div>
-                    <div className="text-center space-y-1">
-                      <Icon name="Shield" size={20} className="mx-auto text-primary" />
-                      <p className="text-xs font-semibold">Защита</p>
-                      <p className="font-mono text-xs text-muted-foreground">Полимерная оболочка</p>
+                    <div className="text-center space-y-1 p-3 bg-amber-500/20 rounded border border-amber-500/30">
+                      <Icon name="Zap" size={18} className="mx-auto text-amber-600" />
+                      <p className="text-xs font-semibold">Контакты</p>
+                      <p className="font-mono text-xs text-muted-foreground">{construction.contactPlateThickness}мм</p>
+                    </div>
+                    <div className="text-center space-y-1 p-3 bg-green-500/20 rounded border border-green-500/30">
+                      <Icon name="Shield" size={18} className="mx-auto text-green-600" />
+                      <p className="text-xs font-semibold">Изоляция</p>
+                      <p className="font-mono text-xs text-muted-foreground">{construction.insulatorThickness}мм</p>
                     </div>
                     </div>
                   </div>
@@ -745,6 +831,245 @@ const Index = () => {
                 </ol>
               </div>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="testing" className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="space-y-6">
+                <Card className="p-6">
+                  <div className="flex items-center gap-2 border-b pb-3 mb-4">
+                    <Icon name="Wrench" size={20} className="text-primary" />
+                    <h2 className="text-lg font-semibold">Конструкция датчика</h2>
+                  </div>
+
+                  <div className="space-y-5">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Корпус датчика (мм)</Label>
+                        <span className="font-mono text-sm font-semibold text-primary">{construction.housingThickness}</span>
+                      </div>
+                      <Slider
+                        value={[construction.housingThickness]}
+                        onValueChange={(v) => updateConstruction('housingThickness', v[0])}
+                        min={1}
+                        max={5}
+                        step={0.5}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Количество пьезоэлементов</Label>
+                        <span className="font-mono text-sm font-semibold text-primary">{construction.piezoLayers}</span>
+                      </div>
+                      <Slider
+                        value={[construction.piezoLayers]}
+                        onValueChange={(v) => updateConstruction('piezoLayers', v[0])}
+                        min={1}
+                        max={10}
+                        step={1}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Контактные пластины (мм)</Label>
+                        <span className="font-mono text-sm font-semibold text-primary">{construction.contactPlateThickness}</span>
+                      </div>
+                      <Slider
+                        value={[construction.contactPlateThickness]}
+                        onValueChange={(v) => updateConstruction('contactPlateThickness', v[0])}
+                        min={0.1}
+                        max={2}
+                        step={0.1}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Изолирующие пластины (мм)</Label>
+                        <span className="font-mono text-sm font-semibold text-primary">{construction.insulatorThickness}</span>
+                      </div>
+                      <Slider
+                        value={[construction.insulatorThickness]}
+                        onValueChange={(v) => updateConstruction('insulatorThickness', v[0])}
+                        min={0.05}
+                        max={1}
+                        step={0.05}
+                      />
+                    </div>
+
+                    <div className="p-3 bg-muted rounded">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-muted-foreground">Общая толщина</span>
+                        <span className="font-mono font-semibold">{getTotalThickness().toFixed(2)} мм</span>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <div className="flex items-center gap-2 border-b pb-3 mb-4">
+                    <Icon name="Waves" size={20} className="text-primary" />
+                    <h2 className="text-lg font-semibold">Генератор тестового сигнала</h2>
+                  </div>
+
+                  <div className="space-y-5">
+                    <div className="space-y-2">
+                      <Label>Форма сигнала</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button
+                          variant={testSignal.waveform === 'sine' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setTestSignal(prev => ({ ...prev, waveform: 'sine' }))}
+                        >
+                          Синус
+                        </Button>
+                        <Button
+                          variant={testSignal.waveform === 'square' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setTestSignal(prev => ({ ...prev, waveform: 'square' }))}
+                        >
+                          Меандр
+                        </Button>
+                        <Button
+                          variant={testSignal.waveform === 'triangle' ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setTestSignal(prev => ({ ...prev, waveform: 'triangle' }))}
+                        >
+                          Треугольник
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Амплитуда (Н)</Label>
+                        <span className="font-mono text-sm font-semibold text-primary">{testSignal.amplitude}</span>
+                      </div>
+                      <Slider
+                        value={[testSignal.amplitude]}
+                        onValueChange={(v) => setTestSignal(prev => ({ ...prev, amplitude: v[0] }))}
+                        min={10}
+                        max={200}
+                        step={5}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Частота (Гц)</Label>
+                        <span className="font-mono text-sm font-semibold text-primary">{testSignal.frequency}</span>
+                      </div>
+                      <Slider
+                        value={[testSignal.frequency]}
+                        onValueChange={(v) => setTestSignal(prev => ({ ...prev, frequency: v[0] }))}
+                        min={100}
+                        max={5000}
+                        step={100}
+                      />
+                    </div>
+
+                    <Button
+                      onClick={() => setIsTestRunning(!isTestRunning)}
+                      className="w-full gap-2"
+                      variant={isTestRunning ? 'destructive' : 'default'}
+                    >
+                      <Icon name={isTestRunning ? 'Square' : 'Play'} size={18} />
+                      {isTestRunning ? 'Остановить тест' : 'Запустить тест'}
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+
+              <div className="space-y-6">
+                <Card className="p-6">
+                  <div className="flex items-center gap-2 border-b pb-3 mb-6">
+                    <Icon name="Layers" size={20} className="text-primary" />
+                    <h2 className="text-lg font-semibold">Состав компонентов</h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    {Array.from({ length: construction.piezoLayers }).map((_, idx) => (
+                      <div key={idx} className="space-y-2">
+                        <div className="flex items-center gap-2 p-2 bg-secondary/20 rounded border-l-4 border-secondary">
+                          <Icon name="Box" size={16} className="text-secondary" />
+                          <span className="text-sm font-semibold">Корпус (верх/низ) - {construction.housingThickness}мм</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 p-2 bg-amber-500/20 rounded border-l-4 border-amber-500">
+                          <Icon name="Zap" size={16} className="text-amber-600" />
+                          <span className="text-sm font-semibold">Контактная пластина - {construction.contactPlateThickness}мм</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 p-2 bg-primary/20 rounded border-l-4 border-primary">
+                          <Icon name="Hexagon" size={16} className="text-primary" />
+                          <span className="text-sm font-semibold">Пьезоэлемент {idx + 1} ({selectedMaterial.name}) - 2мм</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 p-2 bg-green-500/20 rounded border-l-4 border-green-500">
+                          <Icon name="Shield" size={16} className="text-green-600" />
+                          <span className="text-sm font-semibold">Изолятор - {construction.insulatorThickness}мм</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+
+                <Card className="p-6 bg-gradient-to-br from-primary/10 to-accent/10 border-primary/30">
+                  <div className="flex items-center gap-2 border-b border-primary/20 pb-3 mb-4">
+                    <Icon name="Activity" size={20} className="text-primary" />
+                    <h2 className="text-lg font-semibold">Выходной сигнал в реальном времени</h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="relative h-32 bg-card rounded border-2 border-primary/20 overflow-hidden">
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        {!isTestRunning ? (
+                          <p className="text-muted-foreground text-sm">Запустите тест для просмотра сигнала</p>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <div 
+                              className="w-2 h-full bg-primary transition-all duration-75"
+                              style={{ 
+                                height: `${Math.abs(testOutput) / 2}%`,
+                                opacity: 0.8
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-card rounded">
+                        <p className="text-xs text-muted-foreground mb-1">Текущее напряжение</p>
+                        <p className="font-mono font-bold text-lg text-primary">{testOutput.toFixed(2)} В</p>
+                      </div>
+
+                      <div className="p-3 bg-card rounded">
+                        <p className="text-xs text-muted-foreground mb-1">Пиковое значение</p>
+                        <p className="font-mono font-bold text-lg text-accent">
+                          {(testSignal.amplitude * (params.sensitivity / 100) * (construction.piezoLayers / 3)).toFixed(2)} В
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-card/50 rounded text-xs space-y-1">
+                      <p className="text-muted-foreground">
+                        <strong>Статус:</strong> {isTestRunning ? '🟢 Тестирование' : '⚪ Остановлен'}
+                      </p>
+                      <p className="text-muted-foreground">
+                        <strong>Слоёв:</strong> {construction.piezoLayers} × коэффициент усиления
+                      </p>
+                      <p className="text-muted-foreground">
+                        <strong>Материал:</strong> {selectedMaterial.name} (d₃₃ = {selectedMaterial.piezoCoefficient} пКл/Н)
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="materials" className="space-y-6">
