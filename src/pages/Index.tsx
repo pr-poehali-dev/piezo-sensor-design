@@ -48,6 +48,8 @@ interface SensorConstruction {
   piezoLayers: number;
   contactPlateThickness: number;
   insulatorThickness: number;
+  piezoElementsCount: number;
+  piezoElementSpacing: number;
 }
 
 interface TestSignal {
@@ -101,7 +103,9 @@ const Index = () => {
     housingThickness: 2,
     piezoLayers: 3,
     contactPlateThickness: 0.5,
-    insulatorThickness: 0.2
+    insulatorThickness: 0.2,
+    piezoElementsCount: 5,
+    piezoElementSpacing: 15
   });
   const [testSignal, setTestSignal] = useState<TestSignal>({
     amplitude: 50,
@@ -753,18 +757,33 @@ const Index = () => {
                         }}></div>
                       </div>
                       
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-primary rounded-full border-4 border-card shadow-lg"></div>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-8 bg-primary rounded-full border-4 border-card shadow-lg"></div>
+                      {Array.from({ length: construction.piezoElementsCount }).map((_, idx) => {
+                        const totalSpacing = (construction.piezoElementsCount - 1) * construction.piezoElementSpacing;
+                        const usableWidth = 100 - 8;
+                        const startOffset = 4;
+                        const position = startOffset + (idx * (usableWidth - totalSpacing) / (construction.piezoElementsCount - 1)) + (idx * construction.piezoElementSpacing);
+                        
+                        return (
+                          <div 
+                            key={idx}
+                            className="absolute top-1/2 -translate-y-1/2 w-8 h-8 bg-primary rounded-full border-4 border-card shadow-lg"
+                            style={{ left: `${position}%` }}
+                          >
+                            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/40 to-transparent"></div>
+                            <div className="absolute inset-2 rounded-full border border-primary/30"></div>
+                          </div>
+                        );
+                      })}
                     </div>
 
                     <div className="absolute -top-8 left-1/2 -translate-x-1/2">
                       <Badge variant="secondary" className="font-mono text-xs">
-                        {selectedMaterial.name}
+                        {selectedMaterial.name} × {construction.piezoElementsCount}
                       </Badge>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-3 pt-4">
+                  <div className="grid grid-cols-2 gap-3 pt-4">
                     <div className="text-center space-y-1 p-3 bg-secondary/20 rounded border border-secondary/30">
                       <Icon name="Box" size={18} className="mx-auto text-secondary" />
                       <p className="text-xs font-semibold">Корпус</p>
@@ -772,13 +791,13 @@ const Index = () => {
                     </div>
                     <div className="text-center space-y-1 p-3 bg-primary/20 rounded border border-primary/30">
                       <Icon name="Hexagon" size={18} className="mx-auto text-primary" />
-                      <p className="text-xs font-semibold">Пьезоэлементы</p>
-                      <p className="font-mono text-xs text-muted-foreground">{construction.piezoLayers} шт</p>
+                      <p className="text-xs font-semibold">Кварцевые элементы</p>
+                      <p className="font-mono text-xs text-muted-foreground">{construction.piezoElementsCount} шт</p>
                     </div>
                     <div className="text-center space-y-1 p-3 bg-amber-500/20 rounded border border-amber-500/30">
                       <Icon name="Zap" size={18} className="mx-auto text-amber-600" />
-                      <p className="text-xs font-semibold">Контакты</p>
-                      <p className="font-mono text-xs text-muted-foreground">{construction.contactPlateThickness}мм</p>
+                      <p className="text-xs font-semibold">Расстояние</p>
+                      <p className="font-mono text-xs text-muted-foreground">{construction.piezoElementSpacing}%</p>
                     </div>
                     <div className="text-center space-y-1 p-3 bg-green-500/20 rounded border border-green-500/30">
                       <Icon name="Shield" size={18} className="mx-auto text-green-600" />
@@ -817,8 +836,23 @@ const Index = () => {
                           border: '3px solid hsl(var(--secondary))',
                         }}
                       >
-                        <div className="absolute left-6 top-1/2 -translate-y-1/2 w-10 h-10 bg-primary rounded-full border-4 border-card shadow-lg"></div>
-                        <div className="absolute right-6 top-1/2 -translate-y-1/2 w-10 h-10 bg-primary rounded-full border-4 border-card shadow-lg"></div>
+                        {Array.from({ length: construction.piezoElementsCount }).map((_, idx) => {
+                          const totalSpacing = (construction.piezoElementsCount - 1) * construction.piezoElementSpacing;
+                          const usableWidth = 100 - 6;
+                          const startOffset = 3;
+                          const position = startOffset + (idx * (usableWidth - totalSpacing) / (construction.piezoElementsCount - 1)) + (idx * construction.piezoElementSpacing);
+                          
+                          return (
+                            <div 
+                              key={idx}
+                              className="absolute top-1/2 -translate-y-1/2 w-10 h-10 bg-primary rounded-full border-4 border-card shadow-lg"
+                              style={{ left: `${position}%` }}
+                            >
+                              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/40 to-transparent"></div>
+                              <div className="absolute inset-2 rounded-full border border-primary/30"></div>
+                            </div>
+                          );
+                        })}
                       </div>
 
                       <div
@@ -875,7 +909,7 @@ const Index = () => {
                         style={{ transform: 'translateZ(40px) translateX(-50%)' }}
                       >
                         <Badge variant="secondary" className="font-mono text-xs shadow-lg">
-                          {selectedMaterial.name}
+                          {selectedMaterial.name} × {construction.piezoElementsCount}
                         </Badge>
                       </div>
 
@@ -950,7 +984,43 @@ const Index = () => {
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label>Количество пьезоэлементов</Label>
+                        <Label>Количество кварцевых элементов</Label>
+                        <span className="font-mono text-sm font-semibold text-primary">{construction.piezoElementsCount}</span>
+                      </div>
+                      <Slider
+                        value={[construction.piezoElementsCount]}
+                        onValueChange={(v) => updateConstruction('piezoElementsCount', v[0])}
+                        min={2}
+                        max={15}
+                        step={1}
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground font-mono">
+                        <span>2 элемента</span>
+                        <span>15 элементов</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Расстояние между элементами (%)</Label>
+                        <span className="font-mono text-sm font-semibold text-primary">{construction.piezoElementSpacing}</span>
+                      </div>
+                      <Slider
+                        value={[construction.piezoElementSpacing]}
+                        onValueChange={(v) => updateConstruction('piezoElementSpacing', v[0])}
+                        min={5}
+                        max={30}
+                        step={1}
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground font-mono">
+                        <span>5% (плотно)</span>
+                        <span>30% (редко)</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label>Слои пьезокерамики</Label>
                         <span className="font-mono text-sm font-semibold text-primary">{construction.piezoLayers}</span>
                       </div>
                       <Slider
