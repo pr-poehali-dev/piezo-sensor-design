@@ -1006,12 +1006,12 @@ const Index = () => {
                         value={[construction.piezoElementsCount]}
                         onValueChange={(v) => updateConstruction('piezoElementsCount', v[0])}
                         min={2}
-                        max={15}
+                        max={40}
                         step={1}
                       />
                       <div className="flex justify-between text-xs text-muted-foreground font-mono">
                         <span>2 элемента</span>
-                        <span>15 элементов</span>
+                        <span>40 элементов</span>
                       </div>
                     </div>
 
