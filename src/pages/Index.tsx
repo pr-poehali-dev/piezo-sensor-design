@@ -11,6 +11,7 @@ import { Slider } from '@/components/ui/slider';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
 import ElectricalSchematic from '@/components/ElectricalSchematic';
+import SensorVisualization from '@/components/SensorVisualization';
 
 interface SensorParams {
   length: number;
@@ -746,206 +747,32 @@ const Index = () => {
                 </div>
               </div>
 
-              {viewMode === '2d' ? (
-                <div className="bg-muted/30 rounded-lg p-8 border-2 border-dashed border-border">
-                  <div className="space-y-8">
-                  <div className="flex justify-between items-center text-xs font-mono text-muted-foreground">
-                    <span>0 м</span>
-                    <span className="text-primary font-semibold">{params.length.toFixed(2)} м</span>
-                  </div>
-
-                  <div className="relative">
-                    <div className="h-16 bg-gradient-to-r from-secondary via-primary/30 to-secondary rounded border-2 border-secondary relative overflow-hidden">
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-full h-0.5 bg-primary/20" style={{
-                          background: 'repeating-linear-gradient(90deg, hsl(var(--primary)) 0px, hsl(var(--primary)) 2px, transparent 2px, transparent 20px)'
-                        }}></div>
-                      </div>
-                      
-                      {Array.from({ length: construction.piezoElementsCount }).map((_, idx) => {
-                        const totalSpacing = (construction.piezoElementsCount - 1) * construction.piezoElementSpacing;
-                        const usableWidth = 100 - 8;
-                        const startOffset = 4;
-                        const position = startOffset + (idx * (usableWidth - totalSpacing) / (construction.piezoElementsCount - 1)) + (idx * construction.piezoElementSpacing);
-                        
-                        return (
-                          <div 
-                            key={idx}
-                            className="absolute top-1/2 -translate-y-1/2 w-8 h-8 bg-primary rounded-full border-4 border-card shadow-lg"
-                            style={{ left: `${position}%` }}
-                          >
-                            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/40 to-transparent"></div>
-                            <div className="absolute inset-2 rounded-full border border-primary/30"></div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    <div className="absolute -top-8 left-1/2 -translate-x-1/2">
-                      <Badge variant="secondary" className="font-mono text-xs">
-                        {selectedMaterial.name} × {construction.piezoElementsCount}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 pt-4">
-                    <div className="text-center space-y-1 p-3 bg-secondary/20 rounded border border-secondary/30">
-                      <Icon name="Box" size={18} className="mx-auto text-secondary" />
-                      <p className="text-xs font-semibold">Корпус</p>
-                      <p className="font-mono text-xs text-muted-foreground">{construction.housingThickness}мм</p>
-                    </div>
-                    <div className="text-center space-y-1 p-3 bg-primary/20 rounded border border-primary/30">
-                      <Icon name="Hexagon" size={18} className="mx-auto text-primary" />
-                      <p className="text-xs font-semibold">Кварцевые элементы</p>
-                      <p className="font-mono text-xs text-muted-foreground">{construction.piezoElementsCount} шт</p>
-                    </div>
-                    <div className="text-center space-y-1 p-3 bg-amber-500/20 rounded border border-amber-500/30">
-                      <Icon name="Zap" size={18} className="mx-auto text-amber-600" />
-                      <p className="text-xs font-semibold">Расстояние</p>
-                      <p className="font-mono text-xs text-muted-foreground">{construction.piezoElementSpacing}%</p>
-                    </div>
-                    <div className="text-center space-y-1 p-3 bg-green-500/20 rounded border border-green-500/30">
-                      <Icon name="Shield" size={18} className="mx-auto text-green-600" />
-                      <p className="text-xs font-semibold">Изоляция</p>
-                      <p className="font-mono text-xs text-muted-foreground">{construction.insulatorThickness}мм</p>
-                    </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div
-                  className="bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg p-8 border-2 border-border relative overflow-hidden cursor-move select-none"
-                  style={{ perspective: '1000px', minHeight: '500px' }}
-                  onMouseDown={handleMouseDown}
-                  onMouseMove={handleMouseMove}
-                >
-                  <div className="absolute top-4 right-4 text-xs text-muted-foreground font-mono bg-card/80 px-3 py-2 rounded">
+              <div
+                className={viewMode === '3d' ? "bg-gradient-to-br from-muted/30 to-muted/10 rounded-lg p-8 border-2 border-border relative overflow-hidden cursor-move select-none" : "bg-muted/30 rounded-lg p-8 border-2 border-dashed border-border"}
+                onMouseDown={viewMode === '3d' ? handleMouseDown : undefined}
+                onMouseMove={viewMode === '3d' ? handleMouseMove : undefined}
+              >
+                {viewMode === '3d' && (
+                  <div className="absolute top-4 right-4 text-xs text-muted-foreground font-mono bg-card/80 px-3 py-2 rounded z-10">
                     Перетащите для вращения
                   </div>
+                )}
+                <SensorVisualization
+                  length={params.length}
+                  piezoElementsCount={construction.piezoElementsCount}
+                  piezoElementSpacing={construction.piezoElementSpacing}
+                  housingThickness={construction.housingThickness}
+                  piezoLayers={construction.piezoLayers}
+                  contactPlateThickness={construction.contactPlateThickness}
+                  insulatorThickness={construction.insulatorThickness}
+                  materialName={selectedMaterial.name}
+                  viewMode={viewMode}
+                  rotation={rotation}
+                  isDragging={isDragging}
+                />
+              </div>
 
-                  <div
-                    className="relative w-full h-[450px] flex items-center justify-center"
-                    style={{
-                      transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg)`,
-                      transformStyle: 'preserve-3d',
-                      transition: isDragging ? 'none' : 'transform 0.3s ease-out'
-                    }}
-                  >
-                    <div className="relative" style={{ transformStyle: 'preserve-3d' }}>
-                      <div
-                        className="absolute bg-gradient-to-r from-secondary via-primary/40 to-secondary rounded-lg shadow-2xl"
-                        style={{
-                          width: `${params.length * 200}px`,
-                          height: '60px',
-                          transform: 'translateZ(20px)',
-                          border: '3px solid hsl(var(--secondary))',
-                        }}
-                      >
-                        {Array.from({ length: construction.piezoElementsCount }).map((_, idx) => {
-                          const totalSpacing = (construction.piezoElementsCount - 1) * construction.piezoElementSpacing;
-                          const usableWidth = 100 - 6;
-                          const startOffset = 3;
-                          const position = startOffset + (idx * (usableWidth - totalSpacing) / (construction.piezoElementsCount - 1)) + (idx * construction.piezoElementSpacing);
-                          
-                          return (
-                            <div 
-                              key={idx}
-                              className="absolute top-1/2 -translate-y-1/2 w-10 h-10 bg-primary rounded-full border-4 border-card shadow-lg"
-                              style={{ left: `${position}%` }}
-                            >
-                              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/40 to-transparent"></div>
-                              <div className="absolute inset-2 rounded-full border border-primary/30"></div>
-                            </div>
-                          );
-                        })}
-                      </div>
 
-                      <div
-                        className="absolute bg-gradient-to-r from-secondary/80 via-primary/30 to-secondary/80 rounded-lg"
-                        style={{
-                          width: `${params.length * 200}px`,
-                          height: '60px',
-                          transform: 'translateZ(-20px)',
-                          border: '3px solid hsl(var(--secondary))',
-                        }}
-                      />
-
-                      <div
-                        className="absolute bg-secondary/60"
-                        style={{
-                          width: `${params.length * 200}px`,
-                          height: '40px',
-                          top: '10px',
-                          transform: 'rotateX(90deg) translateZ(20px)',
-                        }}
-                      />
-
-                      <div
-                        className="absolute bg-secondary/60"
-                        style={{
-                          width: `${params.length * 200}px`,
-                          height: '40px',
-                          top: '10px',
-                          transform: 'rotateX(90deg) translateZ(-20px)',
-                        }}
-                      />
-
-                      <div
-                        className="absolute bg-secondary/70"
-                        style={{
-                          width: '40px',
-                          height: '60px',
-                          transform: 'rotateY(90deg) translateZ(20px)',
-                        }}
-                      />
-
-                      <div
-                        className="absolute bg-secondary/70"
-                        style={{
-                          width: '40px',
-                          height: '60px',
-                          right: 0,
-                          transform: `rotateY(90deg) translateZ(${params.length * 200 - 20}px)`,
-                        }}
-                      />
-
-                      <div
-                        className="absolute left-1/2 -translate-x-1/2 -top-16"
-                        style={{ transform: 'translateZ(40px) translateX(-50%)' }}
-                      >
-                        <Badge variant="secondary" className="font-mono text-xs shadow-lg">
-                          {selectedMaterial.name} × {construction.piezoElementsCount}
-                        </Badge>
-                      </div>
-
-                      <div
-                        className="absolute left-0 -top-8 text-xs font-mono text-primary font-semibold"
-                        style={{ transform: 'translateZ(40px)' }}
-                      >
-                        {params.length.toFixed(2)} м
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 pt-8 relative z-10">
-                    <div className="text-center space-y-1 bg-card/80 p-3 rounded">
-                      <Icon name="Layers" size={20} className="mx-auto text-primary" />
-                      <p className="text-xs font-semibold">Слои</p>
-                      <p className="font-mono text-xs text-muted-foreground">Многослойная конструкция</p>
-                    </div>
-                    <div className="text-center space-y-1 bg-card/80 p-3 rounded">
-                      <Icon name="Zap" size={20} className="mx-auto text-primary" />
-                      <p className="text-xs font-semibold">Электроды</p>
-                      <p className="font-mono text-xs text-muted-foreground">Медь/Серебро</p>
-                    </div>
-                    <div className="text-center space-y-1 bg-card/80 p-3 rounded">
-                      <Icon name="Shield" size={20} className="mx-auto text-primary" />
-                      <p className="text-xs font-semibold">Защита</p>
-                      <p className="font-mono text-xs text-muted-foreground">Полимерная оболочка</p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               <div className="mt-6 p-4 bg-muted/50 rounded space-y-2">
                 <h3 className="font-semibold text-sm flex items-center gap-2">
