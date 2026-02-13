@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
 import Icon from '@/components/ui/icon';
 import { Badge } from '@/components/ui/badge';
+import ElectricalSchematic from '@/components/ElectricalSchematic';
 
 interface SensorParams {
   length: number;
@@ -545,7 +546,7 @@ const Index = () => {
 
       <main className="container mx-auto px-6 py-8">
         <Tabs defaultValue="calculator" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 max-w-4xl">
+          <TabsList className="grid w-full grid-cols-6 max-w-5xl">
             <TabsTrigger value="calculator" className="flex items-center gap-2">
               <Icon name="Calculator" size={16} />
               Калькулятор
@@ -553,6 +554,10 @@ const Index = () => {
             <TabsTrigger value="visualization" className="flex items-center gap-2">
               <Icon name="Ruler" size={16} />
               Визуализация
+            </TabsTrigger>
+            <TabsTrigger value="schematic" className="flex items-center gap-2">
+              <Icon name="Cpu" size={16} />
+              Эл. схема
             </TabsTrigger>
             <TabsTrigger value="testing" className="flex items-center gap-2">
               <Icon name="Waves" size={16} />
@@ -956,6 +961,16 @@ const Index = () => {
                 </ol>
               </div>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="schematic" className="space-y-6">
+            <ElectricalSchematic
+              sensitivity={params.sensitivity}
+              frequency={params.frequency}
+              piezoCoefficient={selectedMaterial.piezoCoefficient}
+              materialName={selectedMaterial.name}
+              piezoElementsCount={construction.piezoElementsCount}
+            />
           </TabsContent>
 
           <TabsContent value="testing" className="space-y-6">
